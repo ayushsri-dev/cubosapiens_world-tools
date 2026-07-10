@@ -226,11 +226,22 @@ async function main()
             isLive: false,
             isFeatured: false,
             order: 16
+      },
+      {
+            name: "Random Text Gen",
+            slug: "random-text-generator",
+            description: "Generate Lorem Ipsum, sentences, words, secure passwords, and mock data instantly.",
+            category: "generator",
+            icon: "📝",
+            url: "https://randomtext.cubosapiens.world",
+            isLive: true,
+            isFeatured: false,
+            order: 17
       }
 ]
   })
 
-  console.log("✅ 20 tools seeded")
+  console.log("✅ 21 tools seeded")
 
   await prisma.game.createMany({
     skipDuplicates: true,
