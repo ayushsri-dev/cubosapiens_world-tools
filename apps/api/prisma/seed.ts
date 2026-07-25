@@ -355,6 +355,17 @@ async function main()
             isLive: false,
             isFeatured: false,
             order: 6
+      },
+      {
+            name: "Cube Hopper",
+            slug: "cube-hopper",
+            description: "Hop across dynamic 3D isometric floating cubes, dodge crumbling platforms, and collect gems!",
+            genre: "arcade",
+            icon: "🧊",
+            url: "https://cube-hopper.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 7
       }
 ]
   })
