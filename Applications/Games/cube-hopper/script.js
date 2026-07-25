@@ -1,4 +1,3 @@
-/* --- CONSTANTS & CONFIGURATION --- */
 const STORAGE_KEY = "cubosapiens_cube_hopper_v1";
 
 const SKINS = [
@@ -12,12 +11,10 @@ const PLATFORM_TYPES = {
   NORMAL: "normal",
   MOVING: "moving",
   CRUMBLING: "crumbling",
-  SPRING: "spring",
-  HAZARD: "hazard"
+  SPRING: "spring"
 };
 
-/* --- AUDIO ENGINE --- */
-class AudioEngine {
+class AudioSynth {
   constructor() {
     this.ctx = null;
     this.enabled = true;
@@ -29,88 +26,94 @@ class AudioEngine {
     }
   }
 
-  playHop() {
+  play(type) {
     if (!this.enabled || !this.ctx) return;
+    const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(220, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(440, this.ctx.currentTime + 0.1);
-    gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.1);
-  }
 
-  playGem() {
-    if (!this.enabled || !this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(587.33, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(880, this.ctx.currentTime + 0.15);
-    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.15);
-  }
-
-  playSpring() {
-    if (!this.enabled || !this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(900, this.ctx.currentTime + 0.25);
-    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.25);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.25);
-  }
-
-  playCrash() {
-    if (!this.enabled || !this.ctx) return;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = "sawtooth";
-    osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.3);
-    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start();
-    osc.stop(this.ctx.currentTime + 0.3);
+    if (type === "hop") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(440, now + 0.1);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === "gem") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc.start(now);
+      osc.stop(now + 0.15);
+    } else if (type === "spring") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(300, now);
+      osc.frequency.exponentialRampToValueAtTime(900, now + 0.25);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === "crash") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
   }
 }
 
-/* --- STATE MANAGEMENT --- */
-class GameState {
+class CubeHopper {
   constructor() {
+    this.canvas = document.getElementById("gameCanvas");
+    this.ctx = this.canvas.getContext("2d");
+    this.audio = new AudioSynth();
+
+    this.platforms = [];
+    this.gems = [];
+    this.particles = [];
+
     this.score = 0;
     this.highScore = 0;
-    this.gems = 0;
+    this.collectedGems = 0;
     this.totalGems = 0;
     this.totalHops = 0;
     this.totalGames = 0;
     this.combo = 1;
+
     this.activeSkin = "cyan";
     this.theme = "dark";
-    this.sound = true;
+
     this.isPlaying = false;
     this.isPaused = false;
     this.isGameOver = false;
 
-    this.loadStorage();
+    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    this.player = {
+      gridX: 0, gridY: 0, z: 0,
+      startGridX: 0, startGridY: 0,
+      targetGridX: 0, targetGridY: 0,
+      isHopping: false, hopProgress: 0
+    };
+
+    this.loadState();
+    this.bindDOM();
+    this.bindEvents();
+    this.applyTheme(this.theme);
+    this.updateHUD();
+
+    this.loop = this.loop.bind(this);
+    requestAnimationFrame(this.loop);
   }
 
-  loadStorage() {
+  loadState() {
     try {
       const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
       this.highScore = data.highScore || 0;
@@ -119,13 +122,13 @@ class GameState {
       this.totalGames = data.totalGames || 0;
       this.activeSkin = data.activeSkin || "cyan";
       this.theme = data.theme || "dark";
-      this.sound = data.sound !== undefined ? data.sound : true;
-    } catch (e) {
-      console.error(e);
+      this.audio.enabled = data.sound !== undefined ? data.sound : true;
+    } catch {
+      // fallback defaults
     }
   }
 
-  saveStorage() {
+  saveState() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         highScore: this.highScore,
@@ -134,76 +137,44 @@ class GameState {
         totalGames: this.totalGames,
         activeSkin: this.activeSkin,
         theme: this.theme,
-        sound: this.sound
+        sound: this.audio.enabled
       }));
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // ignore storage write errors
     }
   }
-}
 
-/* --- MAIN GAME ENGINE --- */
-class GameEngine {
-  constructor() {
-    this.canvas = document.getElementById("gameCanvas");
-    this.ctx = this.canvas.getContext("2d");
-    this.audio = new AudioEngine();
-    this.state = new GameState();
-
-    this.gridSize = 40;
-    this.platforms = [];
-    this.particles = [];
-    this.gemsList = [];
-
-    this.camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
-    this.player = {
-      x: 0, y: 0, z: 0,
-      vx: 0, vy: 0, vz: 0,
-      gridX: 0, gridY: 0,
-      isHopping: false,
-      hopProgress: 0,
-      scaleX: 1, scaleY: 1
+  bindDOM() {
+    this.els = {
+      score: document.getElementById("scoreVal"),
+      best: document.getElementById("bestVal"),
+      gems: document.getElementById("gemsVal"),
+      combo: document.getElementById("comboVal"),
+      sr: document.getElementById("srAnnounce"),
+      startOverlay: document.getElementById("startOverlay"),
+      gameOverOverlay: document.getElementById("gameOverOverlay"),
+      pauseOverlay: document.getElementById("pauseOverlay"),
+      themeBtn: document.getElementById("themeToggle"),
+      audioBtn: document.getElementById("audioToggle"),
+      skinGrid: document.getElementById("skinGrid")
     };
-
-    this.initUI();
-    this.initEvents();
-    this.applyTheme(this.state.theme);
-    this.updateScoreboard();
-
-    this.loop = this.loop.bind(this);
-    requestAnimationFrame(this.loop);
   }
 
-  initUI() {
-    this.scoreEl = document.getElementById("scoreVal");
-    this.bestEl = document.getElementById("bestVal");
-    this.gemsEl = document.getElementById("gemsVal");
-    this.comboEl = document.getElementById("comboVal");
-    this.srEl = document.getElementById("srAnnounce");
-
-    this.startOverlay = document.getElementById("startOverlay");
-    this.gameOverOverlay = document.getElementById("gameOverOverlay");
-    this.pauseOverlay = document.getElementById("pauseOverlay");
-
-    this.renderSkinsModal();
-  }
-
-  initEvents() {
+  bindEvents() {
     document.getElementById("startBtn").addEventListener("click", () => this.startGame());
     document.getElementById("restartBtn").addEventListener("click", () => this.startGame());
     document.getElementById("resumeBtn").addEventListener("click", () => this.togglePause());
 
-    document.getElementById("themeToggle").addEventListener("click", () => {
-      this.state.theme = this.state.theme === "dark" ? "light" : "dark";
-      this.applyTheme(this.state.theme);
-      this.state.saveStorage();
+    this.els.themeBtn.addEventListener("click", () => {
+      this.theme = this.theme === "dark" ? "light" : "dark";
+      this.applyTheme(this.theme);
+      this.saveState();
     });
 
-    document.getElementById("audioToggle").addEventListener("click", () => {
-      this.state.sound = !this.state.sound;
-      this.audio.enabled = this.state.sound;
+    this.els.audioBtn.addEventListener("click", () => {
+      this.audio.enabled = !this.audio.enabled;
       this.updateAudioIcon();
-      this.state.saveStorage();
+      this.saveState();
     });
 
     document.getElementById("skinsBtn").addEventListener("click", () => this.openModal("skinModal"));
@@ -215,26 +186,33 @@ class GameEngine {
     document.getElementById("closeSkinModal").addEventListener("click", () => this.closeModal("skinModal"));
     document.getElementById("closeStatsModal").addEventListener("click", () => this.closeModal("statsModal"));
 
-    window.addEventListener("keydown", (e) => this.handleKeyDown(e));
+    window.addEventListener("keydown", (e) => this.onKeyDown(e));
 
-    // Mobile controls
-    document.getElementById("mJumpBtn").addEventListener("click", () => this.triggerHop(0, 1));
-    document.getElementById("mLeftBtn").addEventListener("click", () => this.triggerHop(-1, 0));
-    document.getElementById("mRightBtn").addEventListener("click", () => this.triggerHop(1, 0));
+    document.getElementById("mJumpBtn").addEventListener("click", () => this.hop(0, 1));
+    document.getElementById("mLeftBtn").addEventListener("click", () => this.hop(-1, 0));
+    document.getElementById("mRightBtn").addEventListener("click", () => this.hop(1, 0));
+
+    this.els.skinGrid.addEventListener("click", (e) => {
+      const card = e.target.closest(".skin-card");
+      if (card && card.dataset.skin) {
+        this.activeSkin = card.dataset.skin;
+        this.saveState();
+        this.renderSkinGrid();
+      }
+    });
   }
 
   applyTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
-    const themeBtn = document.getElementById("themeToggle");
-    themeBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    this.els.themeBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
 
   updateAudioIcon() {
-    const audioBtn = document.getElementById("audioToggle");
-    audioBtn.innerHTML = this.state.sound ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
+    this.els.audioBtn.innerHTML = this.audio.enabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
   }
 
   openModal(id) {
+    if (id === "skinModal") this.renderSkinGrid();
     document.getElementById(id).classList.remove("hidden");
   }
 
@@ -242,40 +220,33 @@ class GameEngine {
     document.getElementById(id).classList.add("hidden");
   }
 
-  renderSkinsModal() {
-    const grid = document.getElementById("skinGrid");
-    grid.innerHTML = SKINS.map(skin => `
-      <div class="skin-card ${this.state.activeSkin === skin.id ? 'active' : ''}" onclick="window.game.selectSkin('${skin.id}')">
+  renderSkinGrid() {
+    this.els.skinGrid.innerHTML = SKINS.map(skin => `
+      <div class="skin-card ${this.activeSkin === skin.id ? 'active' : ''}" data-skin="${skin.id}">
         <div class="skin-preview" style="background: ${skin.color}"></div>
         <strong>${skin.name}</strong>
       </div>
     `).join("");
   }
 
-  selectSkin(id) {
-    this.state.activeSkin = id;
-    this.state.saveStorage();
-    this.renderSkinsModal();
-  }
-
   updateStatsModal() {
-    document.getElementById("statGames").innerText = this.state.totalGames;
-    document.getElementById("statBest").innerText = this.state.highScore;
-    document.getElementById("statGems").innerText = this.state.totalGems;
-    document.getElementById("statHops").innerText = this.state.totalHops;
+    document.getElementById("statGames").innerText = this.totalGames;
+    document.getElementById("statBest").innerText = this.highScore;
+    document.getElementById("statGems").innerText = this.totalGems;
+    document.getElementById("statHops").innerText = this.totalHops;
   }
 
   startGame() {
     this.audio.init();
-    this.state.score = 0;
-    this.state.gems = 0;
-    this.state.combo = 1;
-    this.state.isPlaying = true;
-    this.state.isPaused = false;
-    this.state.isGameOver = false;
+    this.score = 0;
+    this.collectedGems = 0;
+    this.combo = 1;
+    this.isPlaying = true;
+    this.isPaused = false;
+    this.isGameOver = false;
 
-    this.state.totalGames++;
-    this.state.saveStorage();
+    this.totalGames++;
+    this.saveState();
 
     this.player.gridX = 0;
     this.player.gridY = 0;
@@ -283,38 +254,30 @@ class GameEngine {
     this.player.isHopping = false;
     this.player.hopProgress = 0;
 
-    this.generateInitialPlatforms();
-    this.updateScoreboard();
+    this.generateMap();
+    this.updateHUD();
 
-    this.startOverlay.classList.add("hidden");
-    this.gameOverOverlay.classList.add("hidden");
-    this.pauseOverlay.classList.add("hidden");
-
-    this.trackAnalytics("game_start");
+    this.els.startOverlay.classList.add("hidden");
+    this.els.gameOverOverlay.classList.add("hidden");
+    this.els.pauseOverlay.classList.add("hidden");
   }
 
-  generateInitialPlatforms() {
+  generateMap() {
     this.platforms = [];
-    this.gemsList = [];
+    this.gems = [];
 
-    // Starting safe zone
     for (let y = -2; y <= 3; y++) {
       for (let x = -1; x <= 1; x++) {
-        this.platforms.push({
-          x, y, z: 0,
-          type: PLATFORM_TYPES.NORMAL,
-          crumblingTimer: 0,
-          crumbling: false
-        });
+        this.platforms.push({ x, y, z: 0, type: PLATFORM_TYPES.NORMAL, crumbling: false, crumbleProgress: 0 });
       }
     }
 
-    // Procedural track ahead
     this.extendTrack(50);
   }
 
   extendTrack(count) {
-    const lastY = this.platforms.length > 0 ? Math.max(...this.platforms.map(p => p.y)) : 0;
+    const lastY = this.platforms.length ? Math.max(...this.platforms.map(p => p.y)) : 0;
+
     for (let i = 1; i <= count; i++) {
       const y = lastY + i;
       const width = Math.random() > 0.4 ? 2 : 1;
@@ -329,85 +292,71 @@ class GameEngine {
         else if (rand < 0.3) type = PLATFORM_TYPES.CRUMBLING;
         else if (rand < 0.38) type = PLATFORM_TYPES.SPRING;
 
-        const plat = {
+        this.platforms.push({
           x, y, z: 0,
           type,
           offset: Math.random() * Math.PI * 2,
           crumbling: false,
           crumbleProgress: 0
-        };
-        this.platforms.push(plat);
+        });
 
-        if (Math.random() < 0.25 && type !== PLATFORM_TYPES.HAZARD) {
-          this.gemsList.push({ x, y, z: 0.8, collected: false });
+        if (Math.random() < 0.25) {
+          this.gems.push({ x, y, z: 0.8, collected: false });
         }
       }
     }
   }
 
-  handleKeyDown(e) {
+  onKeyDown(e) {
     if (e.key === "p" || e.key === "P") {
       this.togglePause();
       return;
     }
 
-    if (!this.state.isPlaying || this.state.isPaused || this.player.isHopping) return;
+    if (!this.isPlaying || this.isPaused || this.player.isHopping) return;
 
     if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " ") {
-      this.triggerHop(0, 1);
+      this.hop(0, 1);
     } else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-      this.triggerHop(-1, 0);
+      this.hop(-1, 0);
     } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-      this.triggerHop(1, 0);
+      this.hop(1, 0);
     }
   }
 
-  triggerHop(dx, dy) {
-    if (!this.state.isPlaying || this.state.isPaused || this.player.isHopping) return;
+  hop(dx, dy) {
+    if (!this.isPlaying || this.isPaused || this.player.isHopping) return;
 
     this.player.isHopping = true;
     this.player.hopProgress = 0;
-    this.player.targetGridX = this.player.gridX + dx;
-    this.player.targetGridY = this.player.gridY + dy;
     this.player.startGridX = this.player.gridX;
     this.player.startGridY = this.player.gridY;
+    this.player.targetGridX = this.player.gridX + dx;
+    this.player.targetGridY = this.player.gridY + dy;
 
-    this.audio.playHop();
-    this.state.totalHops++;
-    this.spawnParticles(this.player.gridX, this.player.gridY, "#ffffff", 4);
+    this.audio.play("hop");
+    this.totalHops++;
+    this.spawnDust(this.player.gridX, this.player.gridY, "#ffffff", 4);
   }
 
   togglePause() {
-    if (!this.state.isPlaying || this.state.isGameOver) return;
-    this.state.isPaused = !this.state.isPaused;
-    if (this.state.isPaused) {
-      this.pauseOverlay.classList.remove("hidden");
-    } else {
-      this.pauseOverlay.classList.add("hidden");
-    }
+    if (!this.isPlaying || this.isGameOver) return;
+    this.isPaused = !this.isPaused;
+    this.els.pauseOverlay.classList.toggle("hidden", !this.isPaused);
   }
 
   update() {
-    if (!this.state.isPlaying || this.state.isPaused) return;
+    if (!this.isPlaying || this.isPaused) return;
 
-    // Moving platforms logic
     const time = Date.now() * 0.003;
     this.platforms.forEach(p => {
-      if (p.type === PLATFORM_TYPES.MOVING) {
-        p.renderX = p.x + Math.sin(time + p.offset) * 0.8;
-      } else {
-        p.renderX = p.x;
-      }
-
+      p.renderX = p.type === PLATFORM_TYPES.MOVING ? p.x + Math.sin(time + p.offset) * 0.8 : p.x;
       if (p.crumbling) {
         p.crumbleProgress += 0.05;
-        if (p.crumbleProgress >= 1) {
-          p.z -= 0.5;
-        }
+        if (p.crumbleProgress >= 1) p.z -= 0.5;
       }
     });
 
-    // Player hopping animation
     if (this.player.isHopping) {
       this.player.hopProgress += 0.12;
       const t = this.player.hopProgress;
@@ -425,18 +374,15 @@ class GameEngine {
       }
     }
 
-    // Camera follow
     this.camera.targetX = this.player.gridX;
     this.camera.targetY = this.player.gridY;
     this.camera.x += (this.camera.targetX - this.camera.x) * 0.1;
     this.camera.y += (this.camera.targetY - this.camera.y) * 0.1;
 
-    // Extend track dynamically
     if (this.player.gridY > this.platforms.length - 20) {
       this.extendTrack(30);
     }
 
-    // Particle updates
     this.particles.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
@@ -447,65 +393,62 @@ class GameEngine {
   }
 
   onLand() {
-    const currentPlat = this.platforms.find(p =>
+    const current = this.platforms.find(p =>
       Math.abs(p.renderX - this.player.gridX) < 0.6 &&
       Math.round(p.y) === Math.round(this.player.gridY)
     );
 
-    if (!currentPlat || currentPlat.z < -2) {
+    if (!current || current.z < -2) {
       this.gameOver("You fell into the void!");
       return;
     }
 
-    if (currentPlat.type === PLATFORM_TYPES.CRUMBLING) {
-      currentPlat.crumbling = true;
-    } else if (currentPlat.type === PLATFORM_TYPES.SPRING) {
-      this.audio.playSpring();
-      this.triggerHop(0, 2);
+    if (current.type === PLATFORM_TYPES.CRUMBLING) {
+      current.crumbling = true;
+    } else if (current.type === PLATFORM_TYPES.SPRING) {
+      this.audio.play("spring");
+      this.hop(0, 2);
     }
 
-    // Gem pickup check
-    this.gemsList.forEach(g => {
+    this.gems.forEach(g => {
       if (!g.collected && Math.abs(g.x - this.player.gridX) < 0.6 && Math.round(g.y) === Math.round(this.player.gridY)) {
         g.collected = true;
-        this.state.gems++;
-        this.state.totalGems++;
-        this.state.score += 25;
-        this.audio.playGem();
-        this.spawnParticles(this.player.gridX, this.player.gridY, "#ffd700", 8);
+        this.collectedGems++;
+        this.totalGems++;
+        this.score += 25;
+        this.audio.play("gem");
+        this.spawnDust(this.player.gridX, this.player.gridY, "#ffd700", 8);
       }
     });
 
-    this.state.score += 10;
-    if (this.state.score > this.state.highScore) {
-      this.state.highScore = this.state.score;
+    this.score += 10;
+    if (this.score > this.highScore) {
+      this.highScore = this.score;
     }
 
-    this.updateScoreboard();
-    this.state.saveStorage();
+    this.updateHUD();
+    this.saveState();
   }
 
   gameOver(reason) {
-    this.state.isPlaying = false;
-    this.state.isGameOver = true;
-    this.audio.playCrash();
+    this.isPlaying = false;
+    this.isGameOver = true;
+    this.audio.play("crash");
 
     document.getElementById("overReason").innerText = reason;
-    document.getElementById("finalScore").innerText = this.state.score;
-    document.getElementById("finalBest").innerText = this.state.highScore;
-    document.getElementById("finalGems").innerText = this.state.gems;
+    document.getElementById("finalScore").innerText = this.score;
+    document.getElementById("finalBest").innerText = this.highScore;
+    document.getElementById("finalGems").innerText = this.collectedGems;
 
-    this.gameOverOverlay.classList.remove("hidden");
-    this.trackAnalytics("game_over", reason, this.state.score);
+    this.els.gameOverOverlay.classList.remove("hidden");
   }
 
-  updateScoreboard() {
-    this.scoreEl.innerText = this.state.score;
-    this.bestEl.innerText = this.state.highScore;
-    this.gemsEl.innerText = `💎 ${this.state.gems}`;
-    this.comboEl.innerText = `x${this.state.combo}`;
-
-    this.srEl.innerText = `Score: ${this.state.score}, High Score: ${this.state.highScore}`;
+  updateHUD() {
+    this.els.score.innerText = this.score;
+    this.els.best.innerText = this.highScore;
+    this.els.gems.innerText = `💎 ${this.collectedGems}`;
+    this.els.combo.innerText = `x${this.combo}`;
+    this.els.sr.innerText = `Score: ${this.score}, High Score: ${this.highScore}`;
   }
 
   toIso(x, y, z) {
@@ -520,7 +463,6 @@ class GameEngine {
   render() {
     this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-    // Grid rendering sorted by isometric depth (x + y)
     const sortedPlatforms = [...this.platforms].sort((a, b) => (a.x + a.y) - (b.x + b.y));
 
     sortedPlatforms.forEach(p => {
@@ -528,20 +470,20 @@ class GameEngine {
       this.drawCube(pos.x, pos.y, 36, 18, 20, this.getPlatformColors(p.type));
     });
 
-    // Render Gems
-    this.gemsList.forEach(g => {
+    this.gems.forEach(g => {
       if (!g.collected) {
         const pos = this.toIso(g.x, g.y, g.z);
-        this.drawGem(pos.x, pos.y);
+        this.ctx.fillStyle = "#ffd700";
+        this.ctx.beginPath();
+        this.ctx.arc(pos.x, pos.y - 10, 6, 0, Math.PI * 2);
+        this.ctx.fill();
       }
     });
 
-    // Render Player
-    const skin = SKINS.find(s => s.id === this.state.activeSkin) || SKINS[0];
+    const skin = SKINS.find(s => s.id === this.activeSkin) || SKINS[0];
     const playerPos = this.toIso(this.player.gridX, this.player.gridY, this.player.z);
     this.drawCube(playerPos.x, playerPos.y, 28, 14, 28, skin);
 
-    // Render Particles
     this.particles.forEach(p => {
       const pos = this.toIso(p.x, p.y, p.z);
       this.ctx.fillStyle = p.color;
@@ -553,7 +495,7 @@ class GameEngine {
 
   getPlatformColors(type) {
     switch (type) {
-      case PLATFORM_TYPES.MOVING: return { color: "#00f0ff", side: "#00a2ff", top: "#80f8ff" };
+      case PLATFORM_TYPES.MOVING: return { color: "#00f0ff", side: "#00a8b3", top: "#80f8ff" };
       case PLATFORM_TYPES.CRUMBLING: return { color: "#ff2a6d", side: "#b31d4c", top: "#ff80a6" };
       case PLATFORM_TYPES.SPRING: return { color: "#05ffa1", side: "#03b371", top: "#80ffcf" };
       default: return { color: "#3a4763", side: "#242e42", top: "#526388" };
@@ -563,7 +505,6 @@ class GameEngine {
   drawCube(x, y, sizeX, sizeY, height, colors) {
     const ctx = this.ctx;
 
-    // Top face
     ctx.fillStyle = colors.top;
     ctx.beginPath();
     ctx.moveTo(x, y - height);
@@ -573,7 +514,6 @@ class GameEngine {
     ctx.closePath();
     ctx.fill();
 
-    // Left face
     ctx.fillStyle = colors.side;
     ctx.beginPath();
     ctx.moveTo(x - sizeX, y - height + sizeY);
@@ -583,7 +523,6 @@ class GameEngine {
     ctx.closePath();
     ctx.fill();
 
-    // Right face
     ctx.fillStyle = colors.color;
     ctx.beginPath();
     ctx.moveTo(x, y - height + sizeY * 2);
@@ -594,14 +533,7 @@ class GameEngine {
     ctx.fill();
   }
 
-  drawGem(x, y) {
-    this.ctx.fillStyle = "#ffd700";
-    this.ctx.beginPath();
-    this.ctx.arc(x, y - 10, 6, 0, Math.PI * 2);
-    this.ctx.fill();
-  }
-
-  spawnParticles(x, y, color, count) {
+  spawnDust(x, y, color, count) {
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x, y, z: 0.2,
@@ -614,12 +546,6 @@ class GameEngine {
     }
   }
 
-  trackAnalytics(action, label = "", value = 0) {
-    if (window.gtag) {
-      window.gtag("event", action, { event_category: "CubeHopper", event_label: label, value });
-    }
-  }
-
   loop() {
     this.update();
     this.render();
@@ -627,7 +553,6 @@ class GameEngine {
   }
 }
 
-/* --- BOOTSTRAP --- */
 window.addEventListener("DOMContentLoaded", () => {
-  window.game = new GameEngine();
+  new CubeHopper();
 });

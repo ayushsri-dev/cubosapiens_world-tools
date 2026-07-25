@@ -4,22 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cube Hopper — CuboSapiens</title>
-  <meta name="description" content="Hop across dynamic 3D isometric floating cubes, dodge crumbling platforms, collect gems, and master the leaderboards in Cube Hopper!" />
-  <meta name="keywords" content="Cube Hopper, HTML5 Game, 3D Isometric Game, Browser Game, CuboSapiens, Arcade Platformer" />
-  <meta property="og:title" content="Cube Hopper — CuboSapiens Browser Games" />
-  <meta property="og:description" content="Dynamic 3D isometric hopping platformer arcade experience." />
-  <meta property="og:type" content="website" />
+  <meta name="description" content="Hop across dynamic 3D isometric floating cubes, dodge crumbling platforms, and collect gems." />
   <link rel="icon" type="image/png" href="assets/favicon.png" />
   <link rel="apple-touch-icon" href="assets/logo.png" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- Header -->
   <header class="header">
     <div class="brand">
-      <img src="assets/logo.png" alt="Cube Hopper Logo" class="logo-cube-img" />
+      <img src="assets/logo.png" alt="Cube Hopper" class="logo-cube-img" />
       <div>
         <h1>CUBE HOPPER</h1>
         <p class="subtitle">3D Isometric Arcade Platformer</p>
@@ -27,22 +21,13 @@
     </div>
 
     <div class="controls-bar">
-      <button id="themeToggle" class="btn-icon" aria-label="Toggle Light/Dark Theme" title="Toggle Theme">
-        <i class="fa-solid fa-moon"></i>
-      </button>
-      <button id="audioToggle" class="btn-icon" aria-label="Toggle Sound" title="Toggle Audio">
-        <i class="fa-solid fa-volume-high"></i>
-      </button>
-      <button id="skinsBtn" class="btn-icon" aria-label="Customize Cube Skin" title="Skins">
-        <i class="fa-solid fa-palette"></i>
-      </button>
-      <button id="statsBtn" class="btn-icon" aria-label="View Statistics" title="Stats">
-        <i class="fa-solid fa-chart-bar"></i>
-      </button>
+      <button id="themeToggle" class="btn-icon" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+      <button id="audioToggle" class="btn-icon" title="Toggle Sound"><i class="fa-solid fa-volume-high"></i></button>
+      <button id="skinsBtn" class="btn-icon" title="Skins"><i class="fa-solid fa-palette"></i></button>
+      <button id="statsBtn" class="btn-icon" title="Stats"><i class="fa-solid fa-chart-bar"></i></button>
     </div>
   </header>
 
-  <!-- Score Board -->
   <div class="scoreboard" role="region" aria-label="Game Stats">
     <div class="stat-card">
       <span class="stat-label">SCORE</span>
@@ -64,21 +49,19 @@
 
   <div id="srAnnounce" class="sr-only" aria-live="polite"></div>
 
-  <!-- Game Container -->
   <main class="game-container">
     <canvas id="gameCanvas" width="800" height="520"></canvas>
 
-    <!-- Start Overlay -->
     <div id="startOverlay" class="overlay">
       <div class="overlay-card">
-        <img src="assets/logo.png" alt="Cube Hopper Logo" class="icon-hero-img" />
+        <img src="assets/logo.png" alt="Cube Hopper" class="icon-hero-img" />
         <h2>Cube Hopper</h2>
-        <p>Hop through the endless isometric grid. Watch out for moving, crumbling, and spike platforms!</p>
+        <p>Hop through the endless isometric grid. Watch out for moving, crumbling, and spring platforms!</p>
 
         <div class="instructions-grid">
           <div class="inst-item">
             <span class="key">Space</span> / <span class="key">W</span> / <span class="key">↑</span>
-            <span>Jump Forward</span>
+            <span>Hop Forward</span>
           </div>
           <div class="inst-item">
             <span class="key">A</span> / <span class="key">←</span> & <span class="key">D</span> / <span class="key">→</span>
@@ -94,7 +77,6 @@
       </div>
     </div>
 
-    <!-- Game Over Overlay -->
     <div id="gameOverOverlay" class="overlay hidden">
       <div class="overlay-card danger">
         <h2>Game Over</h2>
@@ -119,7 +101,6 @@
       </div>
     </div>
 
-    <!-- Pause Overlay -->
     <div id="pauseOverlay" class="overlay hidden">
       <div class="overlay-card">
         <h2>Game Paused</h2>
@@ -129,7 +110,6 @@
     </div>
   </main>
 
-  <!-- Mobile Controls -->
   <div class="mobile-controls">
     <div class="dpad">
       <button id="mLeftBtn" class="m-btn" aria-label="Hop Left"><i class="fa-solid fa-arrow-left"></i></button>
@@ -138,25 +118,21 @@
     <button id="mJumpBtn" class="m-btn m-jump" aria-label="Jump Forward">JUMP <i class="fa-solid fa-arrow-up"></i></button>
   </div>
 
-  <!-- Skin Selector Modal -->
-  <div id="skinModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="skinModalTitle">
+  <div id="skinModal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="skinModalTitle"><i class="fa-solid fa-palette"></i> Select Cube Skin</h3>
-        <button id="closeSkinModal" class="btn-close" aria-label="Close Skins Modal">&times;</button>
+        <h3><i class="fa-solid fa-palette"></i> Select Cube Skin</h3>
+        <button id="closeSkinModal" class="btn-close">&times;</button>
       </div>
-      <div id="skinGrid" class="skin-grid">
-        <!-- Injected via JS -->
-      </div>
+      <div id="skinGrid" class="skin-grid"></div>
     </div>
   </div>
 
-  <!-- Stats Modal -->
-  <div id="statsModal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="statsModalTitle">
+  <div id="statsModal" class="modal hidden" role="dialog" aria-modal="true">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 id="statsModalTitle"><i class="fa-solid fa-chart-bar"></i> Player Statistics</h3>
-        <button id="closeStatsModal" class="btn-close" aria-label="Close Stats Modal">&times;</button>
+        <h3><i class="fa-solid fa-chart-bar"></i> Player Statistics</h3>
+        <button id="closeStatsModal" class="btn-close">&times;</button>
       </div>
       <div class="stats-list">
         <div class="stat-item"><span>Total Games Played:</span><strong id="statGames">0</strong></div>

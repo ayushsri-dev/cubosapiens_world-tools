@@ -1,15 +1,14 @@
-/* --- THEME VARIABLES --- */
 :root {
   --bg: #090c15;
-  --panel-bg: rgba(18, 24, 38, 0.85);
-  --panel-border: rgba(0, 240, 255, 0.18);
+  --panel: rgba(18, 24, 38, 0.85);
+  --border: rgba(0, 240, 255, 0.18);
   --text: #e2e8f0;
-  --text-muted: #8492a6;
+  --muted: #8492a6;
   --primary: #00f0ff;
   --accent: #ffd700;
   --danger: #ff2a6d;
   --success: #05ffa1;
-  --card-bg: #121826;
+  --card: #121826;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
   --glow: 0 0 20px rgba(0, 240, 255, 0.35);
   --font: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -17,20 +16,19 @@
 
 [data-theme="light"] {
   --bg: #f0f4f9;
-  --panel-bg: rgba(255, 255, 255, 0.9);
-  --panel-border: rgba(0, 150, 255, 0.25);
+  --panel: rgba(255, 255, 255, 0.9);
+  --border: rgba(0, 150, 255, 0.25);
   --text: #1a202c;
-  --text-muted: #64748b;
+  --muted: #64748b;
   --primary: #0077ff;
   --accent: #d97706;
   --danger: #e11d48;
   --success: #10b981;
-  --card-bg: #ffffff;
+  --card: #ffffff;
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   --glow: 0 0 15px rgba(0, 119, 255, 0.25);
 }
 
-/* --- RESET & GLOBAL --- */
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -62,7 +60,6 @@ html, body {
   border: 0;
 }
 
-/* --- HEADER --- */
 .header {
   width: 100%;
   max-width: 900px;
@@ -78,18 +75,12 @@ html, body {
   gap: 0.75rem;
 }
 
-.logo-cube {
-  font-size: 2rem;
-  filter: drop-shadow(0 0 8px var(--primary));
-  animation: pulseLogo 2.5s infinite ease-in-out;
-}
-
 .logo-cube-img {
   width: 42px;
   height: 42px;
   object-fit: cover;
   border-radius: 10px;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--border);
   filter: drop-shadow(0 0 10px var(--primary));
   animation: pulseLogo 2.5s infinite ease-in-out;
 }
@@ -109,7 +100,7 @@ html, body {
 
 .subtitle {
   font-size: 0.75rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .controls-bar {
@@ -121,8 +112,8 @@ html, body {
   width: 40px;
   height: 40px;
   border-radius: 10px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  background: var(--panel);
   color: var(--text);
   font-size: 1.1rem;
   cursor: pointer;
@@ -139,7 +130,6 @@ html, body {
   outline: none;
 }
 
-/* --- SCOREBOARD --- */
 .scoreboard {
   width: 100%;
   max-width: 900px;
@@ -150,8 +140,8 @@ html, body {
 }
 
 .stat-card {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border: 1px solid var(--border);
   backdrop-filter: blur(8px);
   border-radius: 12px;
   padding: 0.6rem 1rem;
@@ -164,7 +154,7 @@ html, body {
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 1px;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .stat-val {
@@ -176,7 +166,6 @@ html, body {
 .stat-val.accent { color: var(--accent); }
 .stat-val.highlight { color: var(--success); }
 
-/* --- GAME CONTAINER & CANVAS --- */
 .game-container {
   position: relative;
   width: 100%;
@@ -191,14 +180,13 @@ html, body {
   max-width: 800px;
   height: auto;
   aspect-ratio: 800 / 520;
-  background: var(--card-bg);
+  background: var(--card);
   border-radius: 16px;
-  border: 2px solid var(--panel-border);
+  border: 2px solid var(--border);
   box-shadow: var(--shadow);
   display: block;
 }
 
-/* --- OVERLAYS & MODALS --- */
 .overlay {
   position: absolute;
   top: 0;
@@ -224,8 +212,8 @@ html, body {
 }
 
 .overlay-card {
-  background: var(--card-bg);
-  border: 1px solid var(--panel-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 2rem;
   max-width: 440px;
@@ -238,17 +226,12 @@ html, body {
   border-color: var(--danger);
 }
 
-.icon-hero {
-  font-size: 3rem;
-  margin-bottom: 0.5rem;
-}
-
 .icon-hero-img {
   width: 80px;
   height: 80px;
   object-fit: cover;
   border-radius: 18px;
-  border: 2px solid var(--panel-border);
+  border: 2px solid var(--border);
   margin-bottom: 0.85rem;
   box-shadow: var(--glow);
 }
@@ -260,7 +243,7 @@ html, body {
 }
 
 .overlay-card p {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
   margin-bottom: 1.25rem;
 }
@@ -284,8 +267,8 @@ html, body {
 }
 
 .key {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  border: 1px solid var(--border);
   padding: 0.2rem 0.5rem;
   border-radius: 4px;
   font-weight: bold;
@@ -319,10 +302,9 @@ html, body {
   display: flex;
   justify-content: space-between;
   padding: 0.4rem 0;
-  border-bottom: 1px dashed var(--panel-border);
+  border-bottom: 1px dashed var(--border);
 }
 
-/* --- MOBILE CONTROLS --- */
 .mobile-controls {
   display: none;
   width: 100%;
@@ -342,8 +324,8 @@ html, body {
   width: 60px;
   height: 60px;
   border-radius: 16px;
-  border: 1px solid var(--panel-border);
-  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  background: var(--panel);
   color: var(--primary);
   font-size: 1.4rem;
   display: flex;
@@ -363,7 +345,6 @@ html, body {
   border: none;
 }
 
-/* --- MODAL POPUPS --- */
 .modal {
   position: fixed;
   inset: 0;
@@ -382,8 +363,8 @@ html, body {
 }
 
 .modal-content {
-  background: var(--card-bg);
-  border: 1px solid var(--panel-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 20px;
   padding: 1.5rem;
   width: 90%;
@@ -401,7 +382,7 @@ html, body {
 .btn-close {
   background: none;
   border: none;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 1.5rem;
   cursor: pointer;
 }
@@ -413,8 +394,8 @@ html, body {
 }
 
 .skin-card {
-  background: var(--panel-bg);
-  border: 2px solid var(--panel-border);
+  background: var(--panel);
+  border: 2px solid var(--border);
   border-radius: 14px;
   padding: 1rem;
   text-align: center;
@@ -444,11 +425,10 @@ html, body {
   display: flex;
   justify-content: space-between;
   padding: 0.6rem;
-  background: var(--panel-bg);
+  background: var(--panel);
   border-radius: 8px;
 }
 
-/* --- RESPONSIVE MEDIA QUERIES --- */
 @media (max-width: 640px) {
   .scoreboard {
     grid-template-columns: repeat(2, 1fr);
