@@ -1,4 +1,4 @@
-const STORAGE_KEY = "cubosapiens_cube_hopper_v1";
+const SAVE_KEY = "cube_hopper_save";
 
 const SKINS = [
   { id: "cyan", name: "Cyber Cyan", color: "#00f0ff", side: "#00a8b3", top: "#80f8ff" },
@@ -7,14 +7,14 @@ const SKINS = [
   { id: "gold", name: "Gold Master", color: "#ffd700", side: "#b39700", top: "#ffea80" }
 ];
 
-const PLATFORM_TYPES = {
+const PLATFORMS = {
   NORMAL: "normal",
   MOVING: "moving",
   CRUMBLING: "crumbling",
   SPRING: "spring"
 };
 
-class AudioSynth {
+class SoundFx {
   constructor() {
     this.ctx = null;
     this.enabled = true;
@@ -34,47 +34,31 @@ class AudioSynth {
     osc.connect(gain);
     gain.connect(this.ctx.destination);
 
-    if (type === "hop") {
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(220, now);
-      osc.frequency.exponentialRampToValueAtTime(440, now + 0.1);
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else if (type === "gem") {
-      osc.type = "triangle";
-      osc.frequency.setValueAtTime(587.33, now);
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc.start(now);
-      osc.stop(now + 0.15);
-    } else if (type === "spring") {
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(300, now);
-      osc.frequency.exponentialRampToValueAtTime(900, now + 0.25);
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now);
-      osc.stop(now + 0.25);
-    } else if (type === "crash") {
-      osc.type = "sawtooth";
-      osc.frequency.setValueAtTime(150, now);
-      osc.frequency.exponentialRampToValueAtTime(40, now + 0.3);
-      gain.gain.setValueAtTime(0.4, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
-    }
+    const presets = {
+      hop: { type: "sine", start: 220, end: 440, dur: 0.1, vol: 0.2 },
+      gem: { type: "triangle", start: 587.33, end: 880, dur: 0.15, vol: 0.25 },
+      spring: { type: "sine", start: 300, end: 900, dur: 0.25, vol: 0.3 },
+      crash: { type: "sawtooth", start: 150, end: 40, dur: 0.3, vol: 0.4 }
+    };
+
+    const p = presets[type];
+    if (!p) return;
+
+    osc.type = p.type;
+    osc.frequency.setValueAtTime(p.start, now);
+    osc.frequency.exponentialRampToValueAtTime(p.end, now + p.dur);
+    gain.gain.setValueAtTime(p.vol, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + p.dur);
+    osc.start(now);
+    osc.stop(now + p.dur);
   }
 }
 
-class CubeHopper {
+class CubeGame {
   constructor() {
     this.canvas = document.getElementById("gameCanvas");
     this.ctx = this.canvas.getContext("2d");
-    this.audio = new AudioSynth();
+    this.sound = new SoundFx();
 
     this.platforms = [];
     this.gems = [];
@@ -82,11 +66,10 @@ class CubeHopper {
 
     this.score = 0;
     this.highScore = 0;
-    this.collectedGems = 0;
+    this.gemsCount = 0;
     this.totalGems = 0;
     this.totalHops = 0;
     this.totalGames = 0;
-    this.combo = 1;
 
     this.activeSkin = "cyan";
     this.theme = "dark";
@@ -103,49 +86,7 @@ class CubeHopper {
       isHopping: false, hopProgress: 0
     };
 
-    this.loadState();
-    this.bindDOM();
-    this.bindEvents();
-    this.applyTheme(this.theme);
-    this.updateHUD();
-
-    this.loop = this.loop.bind(this);
-    requestAnimationFrame(this.loop);
-  }
-
-  loadState() {
-    try {
-      const data = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
-      this.highScore = data.highScore || 0;
-      this.totalGems = data.totalGems || 0;
-      this.totalHops = data.totalHops || 0;
-      this.totalGames = data.totalGames || 0;
-      this.activeSkin = data.activeSkin || "cyan";
-      this.theme = data.theme || "dark";
-      this.audio.enabled = data.sound !== undefined ? data.sound : true;
-    } catch {
-      // fallback defaults
-    }
-  }
-
-  saveState() {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        highScore: this.highScore,
-        totalGems: this.totalGems,
-        totalHops: this.totalHops,
-        totalGames: this.totalGames,
-        activeSkin: this.activeSkin,
-        theme: this.theme,
-        sound: this.audio.enabled
-      }));
-    } catch {
-      // ignore storage write errors
-    }
-  }
-
-  bindDOM() {
-    this.els = {
+    this.dom = {
       score: document.getElementById("scoreVal"),
       best: document.getElementById("bestVal"),
       gems: document.getElementById("gemsVal"),
@@ -158,70 +99,109 @@ class CubeHopper {
       audioBtn: document.getElementById("audioToggle"),
       skinGrid: document.getElementById("skinGrid")
     };
+
+    this.loadData();
+    this.setupListeners();
+    this.setTheme(this.theme);
+    this.refreshHUD();
+
+    this.loop = this.loop.bind(this);
+    requestAnimationFrame(this.loop);
   }
 
-  bindEvents() {
-    document.getElementById("startBtn").addEventListener("click", () => this.startGame());
-    document.getElementById("restartBtn").addEventListener("click", () => this.startGame());
+  loadData() {
+    try {
+      const data = JSON.parse(localStorage.getItem(SAVE_KEY)) || {};
+      this.highScore = data.highScore || 0;
+      this.totalGems = data.totalGems || 0;
+      this.totalHops = data.totalHops || 0;
+      this.totalGames = data.totalGames || 0;
+      this.activeSkin = data.activeSkin || "cyan";
+      this.theme = data.theme || "dark";
+      this.sound.enabled = data.sound !== undefined ? data.sound : true;
+    } catch {
+      // defaults on storage read fail
+    }
+  }
+
+  saveData() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        highScore: this.highScore,
+        totalGems: this.totalGems,
+        totalHops: this.totalHops,
+        totalGames: this.totalGames,
+        activeSkin: this.activeSkin,
+        theme: this.theme,
+        sound: this.sound.enabled
+      }));
+    } catch {
+      // ignore storage write errors
+    }
+  }
+
+  setupListeners() {
+    document.getElementById("startBtn").addEventListener("click", () => this.start());
+    document.getElementById("restartBtn").addEventListener("click", () => this.start());
     document.getElementById("resumeBtn").addEventListener("click", () => this.togglePause());
 
-    this.els.themeBtn.addEventListener("click", () => {
+    this.dom.themeBtn.addEventListener("click", () => {
       this.theme = this.theme === "dark" ? "light" : "dark";
-      this.applyTheme(this.theme);
-      this.saveState();
+      this.setTheme(this.theme);
+      this.saveData();
     });
 
-    this.els.audioBtn.addEventListener("click", () => {
-      this.audio.enabled = !this.audio.enabled;
+    this.dom.audioBtn.addEventListener("click", () => {
+      this.sound.enabled = !this.sound.enabled;
       this.updateAudioIcon();
-      this.saveState();
+      this.saveData();
     });
 
-    document.getElementById("skinsBtn").addEventListener("click", () => this.openModal("skinModal"));
+    document.getElementById("skinsBtn").addEventListener("click", () => this.showModal("skinModal"));
     document.getElementById("statsBtn").addEventListener("click", () => {
-      this.updateStatsModal();
-      this.openModal("statsModal");
+      this.renderStats();
+      this.showModal("statsModal");
     });
 
-    document.getElementById("closeSkinModal").addEventListener("click", () => this.closeModal("skinModal"));
-    document.getElementById("closeStatsModal").addEventListener("click", () => this.closeModal("statsModal"));
+    document.getElementById("closeSkinModal").addEventListener("click", () => this.hideModal("skinModal"));
+    document.getElementById("closeStatsModal").addEventListener("click", () => this.hideModal("statsModal"));
 
-    window.addEventListener("keydown", (e) => this.onKeyDown(e));
+    window.addEventListener("keydown", (e) => this.onKeyPress(e));
 
-    document.getElementById("mJumpBtn").addEventListener("click", () => this.hop(0, 1));
-    document.getElementById("mLeftBtn").addEventListener("click", () => this.hop(-1, 0));
-    document.getElementById("mRightBtn").addEventListener("click", () => this.hop(1, 0));
+    document.getElementById("mJumpBtn").addEventListener("click", () => this.jump(0, 1));
+    document.getElementById("mLeftBtn").addEventListener("click", () => this.jump(-1, 0));
+    document.getElementById("mRightBtn").addEventListener("click", () => this.jump(1, 0));
 
-    this.els.skinGrid.addEventListener("click", (e) => {
+    this.dom.skinGrid.addEventListener("click", (e) => {
       const card = e.target.closest(".skin-card");
       if (card && card.dataset.skin) {
         this.activeSkin = card.dataset.skin;
-        this.saveState();
-        this.renderSkinGrid();
+        this.saveData();
+        this.renderSkins();
       }
     });
   }
 
-  applyTheme(theme) {
+  setTheme(theme) {
     document.documentElement.setAttribute("data-theme", theme);
-    this.els.themeBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+    this.dom.themeBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
 
   updateAudioIcon() {
-    this.els.audioBtn.innerHTML = this.audio.enabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
+    this.dom.audioBtn.innerHTML = this.sound.enabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
   }
 
-  openModal(id) {
-    if (id === "skinModal") this.renderSkinGrid();
+  showModal(id) {
+    if (id === "skinModal") this.renderSkins();
     document.getElementById(id).classList.remove("hidden");
   }
 
-  closeModal(id) {
+  hideModal(id) {
     document.getElementById(id).classList.add("hidden");
   }
 
-  renderSkinGrid() {
-    this.els.skinGrid.innerHTML = SKINS.map(skin => `
+  renderSkins() {
+    this.dom.skinGrid.innerHTML = SKINS.map(skin => `
       <div class="skin-card ${this.activeSkin === skin.id ? 'active' : ''}" data-skin="${skin.id}">
         <div class="skin-preview" style="background: ${skin.color}"></div>
         <strong>${skin.name}</strong>
@@ -229,24 +209,23 @@ class CubeHopper {
     `).join("");
   }
 
-  updateStatsModal() {
+  renderStats() {
     document.getElementById("statGames").innerText = this.totalGames;
     document.getElementById("statBest").innerText = this.highScore;
     document.getElementById("statGems").innerText = this.totalGems;
     document.getElementById("statHops").innerText = this.totalHops;
   }
 
-  startGame() {
-    this.audio.init();
+  start() {
+    this.sound.init();
     this.score = 0;
-    this.collectedGems = 0;
-    this.combo = 1;
+    this.gemsCount = 0;
     this.isPlaying = true;
     this.isPaused = false;
     this.isGameOver = false;
 
     this.totalGames++;
-    this.saveState();
+    this.saveData();
 
     this.player.gridX = 0;
     this.player.gridY = 0;
@@ -254,28 +233,28 @@ class CubeHopper {
     this.player.isHopping = false;
     this.player.hopProgress = 0;
 
-    this.generateMap();
-    this.updateHUD();
+    this.buildMap();
+    this.refreshHUD();
 
-    this.els.startOverlay.classList.add("hidden");
-    this.els.gameOverOverlay.classList.add("hidden");
-    this.els.pauseOverlay.classList.add("hidden");
+    this.dom.startOverlay.classList.add("hidden");
+    this.dom.gameOverOverlay.classList.add("hidden");
+    this.dom.pauseOverlay.classList.add("hidden");
   }
 
-  generateMap() {
+  buildMap() {
     this.platforms = [];
     this.gems = [];
 
     for (let y = -2; y <= 3; y++) {
       for (let x = -1; x <= 1; x++) {
-        this.platforms.push({ x, y, z: 0, type: PLATFORM_TYPES.NORMAL, crumbling: false, crumbleProgress: 0 });
+        this.platforms.push({ x, y, z: 0, type: PLATFORMS.NORMAL, crumbling: false, crumbleProgress: 0 });
       }
     }
 
-    this.extendTrack(50);
+    this.appendTrack(50);
   }
 
-  extendTrack(count) {
+  appendTrack(count) {
     const lastY = this.platforms.length ? Math.max(...this.platforms.map(p => p.y)) : 0;
 
     for (let i = 1; i <= count; i++) {
@@ -285,12 +264,12 @@ class CubeHopper {
 
       for (let w = 0; w < width; w++) {
         const x = startX + w;
-        let type = PLATFORM_TYPES.NORMAL;
+        let type = PLATFORMS.NORMAL;
         const rand = Math.random();
 
-        if (rand < 0.15) type = PLATFORM_TYPES.MOVING;
-        else if (rand < 0.3) type = PLATFORM_TYPES.CRUMBLING;
-        else if (rand < 0.38) type = PLATFORM_TYPES.SPRING;
+        if (rand < 0.15) type = PLATFORMS.MOVING;
+        else if (rand < 0.3) type = PLATFORMS.CRUMBLING;
+        else if (rand < 0.38) type = PLATFORMS.SPRING;
 
         this.platforms.push({
           x, y, z: 0,
@@ -307,7 +286,7 @@ class CubeHopper {
     }
   }
 
-  onKeyDown(e) {
+  onKeyPress(e) {
     if (e.key === "p" || e.key === "P") {
       this.togglePause();
       return;
@@ -316,15 +295,15 @@ class CubeHopper {
     if (!this.isPlaying || this.isPaused || this.player.isHopping) return;
 
     if (e.key === "ArrowUp" || e.key === "w" || e.key === "W" || e.key === " ") {
-      this.hop(0, 1);
+      this.jump(0, 1);
     } else if (e.key === "ArrowLeft" || e.key === "a" || e.key === "A") {
-      this.hop(-1, 0);
+      this.jump(-1, 0);
     } else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") {
-      this.hop(1, 0);
+      this.jump(1, 0);
     }
   }
 
-  hop(dx, dy) {
+  jump(dx, dy) {
     if (!this.isPlaying || this.isPaused || this.player.isHopping) return;
 
     this.player.isHopping = true;
@@ -334,15 +313,15 @@ class CubeHopper {
     this.player.targetGridX = this.player.gridX + dx;
     this.player.targetGridY = this.player.gridY + dy;
 
-    this.audio.play("hop");
+    this.sound.play("hop");
     this.totalHops++;
-    this.spawnDust(this.player.gridX, this.player.gridY, "#ffffff", 4);
+    this.addDust(this.player.gridX, this.player.gridY, "#ffffff", 4);
   }
 
   togglePause() {
     if (!this.isPlaying || this.isGameOver) return;
     this.isPaused = !this.isPaused;
-    this.els.pauseOverlay.classList.toggle("hidden", !this.isPaused);
+    this.dom.pauseOverlay.classList.toggle("hidden", !this.isPaused);
   }
 
   update() {
@@ -350,7 +329,7 @@ class CubeHopper {
 
     const time = Date.now() * 0.003;
     this.platforms.forEach(p => {
-      p.renderX = p.type === PLATFORM_TYPES.MOVING ? p.x + Math.sin(time + p.offset) * 0.8 : p.x;
+      p.renderX = p.type === PLATFORMS.MOVING ? p.x + Math.sin(time + p.offset) * 0.8 : p.x;
       if (p.crumbling) {
         p.crumbleProgress += 0.05;
         if (p.crumbleProgress >= 1) p.z -= 0.5;
@@ -380,7 +359,7 @@ class CubeHopper {
     this.camera.y += (this.camera.targetY - this.camera.y) * 0.1;
 
     if (this.player.gridY > this.platforms.length - 20) {
-      this.extendTrack(30);
+      this.appendTrack(30);
     }
 
     this.particles.forEach(p => {
@@ -399,25 +378,25 @@ class CubeHopper {
     );
 
     if (!current || current.z < -2) {
-      this.gameOver("You fell into the void!");
+      this.fail("You fell into the void!");
       return;
     }
 
-    if (current.type === PLATFORM_TYPES.CRUMBLING) {
+    if (current.type === PLATFORMS.CRUMBLING) {
       current.crumbling = true;
-    } else if (current.type === PLATFORM_TYPES.SPRING) {
-      this.audio.play("spring");
-      this.hop(0, 2);
+    } else if (current.type === PLATFORMS.SPRING) {
+      this.sound.play("spring");
+      this.jump(0, 2);
     }
 
     this.gems.forEach(g => {
       if (!g.collected && Math.abs(g.x - this.player.gridX) < 0.6 && Math.round(g.y) === Math.round(this.player.gridY)) {
         g.collected = true;
-        this.collectedGems++;
+        this.gemsCount++;
         this.totalGems++;
         this.score += 25;
-        this.audio.play("gem");
-        this.spawnDust(this.player.gridX, this.player.gridY, "#ffd700", 8);
+        this.sound.play("gem");
+        this.addDust(this.player.gridX, this.player.gridY, "#ffd700", 8);
       }
     });
 
@@ -426,29 +405,29 @@ class CubeHopper {
       this.highScore = this.score;
     }
 
-    this.updateHUD();
-    this.saveState();
+    this.refreshHUD();
+    this.saveData();
   }
 
-  gameOver(reason) {
+  fail(reason) {
     this.isPlaying = false;
     this.isGameOver = true;
-    this.audio.play("crash");
+    this.sound.play("crash");
 
     document.getElementById("overReason").innerText = reason;
     document.getElementById("finalScore").innerText = this.score;
     document.getElementById("finalBest").innerText = this.highScore;
-    document.getElementById("finalGems").innerText = this.collectedGems;
+    document.getElementById("finalGems").innerText = this.gemsCount;
 
-    this.els.gameOverOverlay.classList.remove("hidden");
+    this.dom.gameOverOverlay.classList.remove("hidden");
   }
 
-  updateHUD() {
-    this.els.score.innerText = this.score;
-    this.els.best.innerText = this.highScore;
-    this.els.gems.innerText = `💎 ${this.collectedGems}`;
-    this.els.combo.innerText = `x${this.combo}`;
-    this.els.sr.innerText = `Score: ${this.score}, High Score: ${this.highScore}`;
+  refreshHUD() {
+    this.dom.score.innerText = this.score;
+    this.dom.best.innerText = this.highScore;
+    this.dom.gems.innerText = `💎 ${this.gemsCount}`;
+    this.dom.combo.innerText = `x1`;
+    this.dom.sr.innerText = `Score: ${this.score}, High Score: ${this.highScore}`;
   }
 
   toIso(x, y, z) {
@@ -467,7 +446,7 @@ class CubeHopper {
 
     sortedPlatforms.forEach(p => {
       const pos = this.toIso(p.renderX, p.y, p.z);
-      this.drawCube(pos.x, pos.y, 36, 18, 20, this.getPlatformColors(p.type));
+      this.drawCube(pos.x, pos.y, 36, 18, 20, this.getColors(p.type));
     });
 
     this.gems.forEach(g => {
@@ -493,11 +472,11 @@ class CubeHopper {
     });
   }
 
-  getPlatformColors(type) {
+  getColors(type) {
     switch (type) {
-      case PLATFORM_TYPES.MOVING: return { color: "#00f0ff", side: "#00a8b3", top: "#80f8ff" };
-      case PLATFORM_TYPES.CRUMBLING: return { color: "#ff2a6d", side: "#b31d4c", top: "#ff80a6" };
-      case PLATFORM_TYPES.SPRING: return { color: "#05ffa1", side: "#03b371", top: "#80ffcf" };
+      case PLATFORMS.MOVING: return { color: "#00f0ff", side: "#00a8b3", top: "#80f8ff" };
+      case PLATFORMS.CRUMBLING: return { color: "#ff2a6d", side: "#b31d4c", top: "#ff80a6" };
+      case PLATFORMS.SPRING: return { color: "#05ffa1", side: "#03b371", top: "#80ffcf" };
       default: return { color: "#3a4763", side: "#242e42", top: "#526388" };
     }
   }
@@ -533,7 +512,7 @@ class CubeHopper {
     ctx.fill();
   }
 
-  spawnDust(x, y, color, count) {
+  addDust(x, y, color, count) {
     for (let i = 0; i < count; i++) {
       this.particles.push({
         x, y, z: 0.2,
@@ -554,5 +533,5 @@ class CubeHopper {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  new CubeHopper();
+  new CubeGame();
 });

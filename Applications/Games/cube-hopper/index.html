@@ -7,138 +7,136 @@
   <meta name="description" content="Hop across dynamic 3D isometric floating cubes, dodge crumbling platforms, and collect gems." />
   <link rel="icon" type="image/png" href="assets/favicon.png" />
   <link rel="apple-touch-icon" href="assets/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="header">
-    <div class="brand">
-      <img src="assets/logo.png" alt="Cube Hopper" class="logo-cube-img" />
-      <div>
-        <h1>CUBE HOPPER</h1>
-        <p class="subtitle">3D Isometric Arcade Platformer</p>
-      </div>
-    </div>
-
-    <div class="controls-bar">
-      <button id="themeToggle" class="btn-icon" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
-      <button id="audioToggle" class="btn-icon" title="Toggle Sound"><i class="fa-solid fa-volume-high"></i></button>
-      <button id="skinsBtn" class="btn-icon" title="Skins"><i class="fa-solid fa-palette"></i></button>
-      <button id="statsBtn" class="btn-icon" title="Stats"><i class="fa-solid fa-chart-bar"></i></button>
-    </div>
-  </header>
-
-  <div class="scoreboard" role="region" aria-label="Game Stats">
-    <div class="stat-card">
-      <span class="stat-label">SCORE</span>
-      <span id="scoreVal" class="stat-val primary">0</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">HIGH SCORE</span>
-      <span id="bestVal" class="stat-val">0</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">GEMS</span>
-      <span id="gemsVal" class="stat-val accent">💎 0</span>
-    </div>
-    <div class="stat-card">
-      <span class="stat-label">COMBO</span>
-      <span id="comboVal" class="stat-val highlight">x1</span>
-    </div>
-  </div>
-
-  <div id="srAnnounce" class="sr-only" aria-live="polite"></div>
-
-  <main class="game-container">
-    <canvas id="gameCanvas" width="800" height="520"></canvas>
-
-    <div id="startOverlay" class="overlay">
-      <div class="overlay-card">
-        <img src="assets/logo.png" alt="Cube Hopper" class="icon-hero-img" />
-        <h2>Cube Hopper</h2>
-        <p>Hop through the endless isometric grid. Watch out for moving, crumbling, and spring platforms!</p>
-
-        <div class="instructions-grid">
-          <div class="inst-item">
-            <span class="key">Space</span> / <span class="key">W</span> / <span class="key">↑</span>
-            <span>Hop Forward</span>
-          </div>
-          <div class="inst-item">
-            <span class="key">A</span> / <span class="key">←</span> & <span class="key">D</span> / <span class="key">→</span>
-            <span>Hop Left / Right</span>
-          </div>
-          <div class="inst-item">
-            <span class="key">P</span>
-            <span>Pause Game</span>
-          </div>
+  <div class="app-wrap">
+    <header class="navbar">
+      <div class="brand">
+        <img src="assets/logo.png" alt="Cube Hopper" class="brand-logo" />
+        <div class="brand-text">
+          <span class="brand-title">CUBE HOPPER</span>
+          <span class="brand-sub">ISOMETRIC ARCADE</span>
         </div>
+      </div>
 
-        <button id="startBtn" class="btn-action">Play Game <i class="fa-solid fa-play"></i></button>
+      <div class="nav-actions">
+        <button id="themeToggle" class="icon-btn" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+        <button id="audioToggle" class="icon-btn" title="Toggle Sound"><i class="fa-solid fa-volume-high"></i></button>
+        <button id="skinsBtn" class="icon-btn" title="Skins"><i class="fa-solid fa-palette"></i></button>
+        <button id="statsBtn" class="icon-btn" title="Stats"><i class="fa-solid fa-chart-bar"></i></button>
+      </div>
+    </header>
+
+    <div class="hud">
+      <div class="hud-chip">
+        <span class="hud-label">SCORE</span>
+        <span id="scoreVal" class="hud-val highlight-cyan">0</span>
+      </div>
+      <div class="hud-chip">
+        <span class="hud-label">BEST</span>
+        <span id="bestVal" class="hud-val">0</span>
+      </div>
+      <div class="hud-chip">
+        <span class="hud-label">GEMS</span>
+        <span id="gemsVal" class="hud-val highlight-gold">💎 0</span>
+      </div>
+      <div class="hud-chip">
+        <span class="hud-label">COMBO</span>
+        <span id="comboVal" class="hud-val highlight-green">x1</span>
       </div>
     </div>
 
-    <div id="gameOverOverlay" class="overlay hidden">
-      <div class="overlay-card danger">
-        <h2>Game Over</h2>
-        <p id="overReason">You fell into the void!</p>
+    <div id="srAnnounce" class="sr-only" aria-live="polite"></div>
 
-        <div class="final-stats">
-          <div class="final-row">
-            <span>Score:</span>
-            <strong id="finalScore">0</strong>
+    <main class="viewport">
+      <div class="canvas-frame">
+        <canvas id="gameCanvas" width="800" height="520"></canvas>
+      </div>
+
+      <div id="startOverlay" class="screen-overlay">
+        <div class="glass-card">
+          <img src="assets/logo.png" alt="Cube Hopper" class="hero-logo" />
+          <h2 class="card-title">Cube Hopper</h2>
+          <p class="card-desc">Hop across endless floating isometric cubes. Dodge crumbling & moving platforms!</p>
+
+          <div class="controls-guide">
+            <div class="guide-row">
+              <span class="guide-keys"><kbd>Space</kbd> <kbd>W</kbd> <kbd>↑</kbd></span>
+              <span class="guide-action">Hop Forward</span>
+            </div>
+            <div class="guide-row">
+              <span class="guide-keys"><kbd>A</kbd> <kbd>←</kbd> & <kbd>D</kbd> <kbd>→</kbd></span>
+              <span class="guide-action">Hop Diagonal</span>
+            </div>
+            <div class="guide-row">
+              <span class="guide-keys"><kbd>P</kbd></span>
+              <span class="guide-action">Pause Game</span>
+            </div>
           </div>
-          <div class="final-row">
-            <span>High Score:</span>
-            <strong id="finalBest">0</strong>
-          </div>
-          <div class="final-row">
-            <span>Gems Collected:</span>
-            <strong id="finalGems">0</strong>
-          </div>
+
+          <button id="startBtn" class="primary-btn">Start Game <i class="fa-solid fa-arrow-right"></i></button>
         </div>
-
-        <button id="restartBtn" class="btn-action">Try Again <i class="fa-solid fa-rotate-right"></i></button>
       </div>
-    </div>
 
-    <div id="pauseOverlay" class="overlay hidden">
-      <div class="overlay-card">
-        <h2>Game Paused</h2>
-        <p>Press P or click Resume to continue</p>
-        <button id="resumeBtn" class="btn-action">Resume <i class="fa-solid fa-play"></i></button>
+      <div id="gameOverOverlay" class="screen-overlay hidden">
+        <div class="glass-card gameover-card">
+          <div class="badge-danger">GAME OVER</div>
+          <p id="overReason" class="over-msg">You fell into the void!</p>
+
+          <div class="results-table">
+            <div class="res-row"><span>Final Score</span><strong id="finalScore">0</strong></div>
+            <div class="res-row"><span>High Score</span><strong id="finalBest">0</strong></div>
+            <div class="res-row"><span>Gems Collected</span><strong id="finalGems">0</strong></div>
+          </div>
+
+          <button id="restartBtn" class="primary-btn">Play Again <i class="fa-solid fa-rotate-right"></i></button>
+        </div>
       </div>
-    </div>
-  </main>
 
-  <div class="mobile-controls">
-    <div class="dpad">
-      <button id="mLeftBtn" class="m-btn" aria-label="Hop Left"><i class="fa-solid fa-arrow-left"></i></button>
-      <button id="mRightBtn" class="m-btn" aria-label="Hop Right"><i class="fa-solid fa-arrow-right"></i></button>
+      <div id="pauseOverlay" class="screen-overlay hidden">
+        <div class="glass-card">
+          <h2 class="card-title">Paused</h2>
+          <p class="card-desc">Press P or click Resume to keep hopping</p>
+          <button id="resumeBtn" class="primary-btn">Resume <i class="fa-solid fa-play"></i></button>
+        </div>
+      </div>
+    </main>
+
+    <div class="touch-bar">
+      <div class="touch-dpad">
+        <button id="mLeftBtn" class="touch-btn" aria-label="Hop Left"><i class="fa-solid fa-arrow-left"></i></button>
+        <button id="mRightBtn" class="touch-btn" aria-label="Hop Right"><i class="fa-solid fa-arrow-right"></i></button>
+      </div>
+      <button id="mJumpBtn" class="touch-btn touch-jump" aria-label="Hop Forward">JUMP <i class="fa-solid fa-arrow-up"></i></button>
     </div>
-    <button id="mJumpBtn" class="m-btn m-jump" aria-label="Jump Forward">JUMP <i class="fa-solid fa-arrow-up"></i></button>
   </div>
 
-  <div id="skinModal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-palette"></i> Select Cube Skin</h3>
-        <button id="closeSkinModal" class="btn-close">&times;</button>
+  <div id="skinModal" class="popup-modal hidden" role="dialog" aria-modal="true">
+    <div class="popup-box">
+      <div class="popup-head">
+        <h3><i class="fa-solid fa-palette"></i> Select Skin</h3>
+        <button id="closeSkinModal" class="close-btn">&times;</button>
       </div>
-      <div id="skinGrid" class="skin-grid"></div>
+      <div id="skinGrid" class="skin-selector"></div>
     </div>
   </div>
 
-  <div id="statsModal" class="modal hidden" role="dialog" aria-modal="true">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-chart-bar"></i> Player Statistics</h3>
-        <button id="closeStatsModal" class="btn-close">&times;</button>
+  <div id="statsModal" class="popup-modal hidden" role="dialog" aria-modal="true">
+    <div class="popup-box">
+      <div class="popup-head">
+        <h3><i class="fa-solid fa-chart-bar"></i> Stats</h3>
+        <button id="closeStatsModal" class="close-btn">&times;</button>
       </div>
-      <div class="stats-list">
-        <div class="stat-item"><span>Total Games Played:</span><strong id="statGames">0</strong></div>
-        <div class="stat-item"><span>Highest Score:</span><strong id="statBest">0</strong></div>
-        <div class="stat-item"><span>Total Gems Collected:</span><strong id="statGems">0</strong></div>
-        <div class="stat-item"><span>Total Hops:</span><strong id="statHops">0</strong></div>
+      <div class="stats-rows">
+        <div class="s-row"><span>Games Played</span><strong id="statGames">0</strong></div>
+        <div class="s-row"><span>Highest Score</span><strong id="statBest">0</strong></div>
+        <div class="s-row"><span>Gems Collected</span><strong id="statGems">0</strong></div>
+        <div class="s-row"><span>Total Hops</span><strong id="statHops">0</strong></div>
       </div>
     </div>
   </div>
