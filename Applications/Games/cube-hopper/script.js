@@ -1,4 +1,4 @@
-const SAVE_KEY = "cube_hopper_save";
+const SAVE_KEY = "cube_hopper_save_v2";
 
 const SKINS = [
   { id: "cyan", name: "Cyber Cyan", color: "#00f0ff", side: "#00a8b3", top: "#80f8ff" },
@@ -13,6 +13,25 @@ const PLATFORMS = {
   CRUMBLING: "crumbling",
   SPRING: "spring"
 };
+
+const ACHIEVEMENTS = [
+  { id: "first_hop", icon: "🐣", title: "First Hop", desc: "Perform your first hop across platforms." },
+  { id: "gem_collector", icon: "💎", title: "Gem Collector", desc: "Collect 10 total arcade gems." },
+  { id: "hop_century", icon: "🏃", title: "Century Hopper", desc: "Reach 100 lifetime hops." },
+  { id: "combo_king", icon: "⚡", title: "Combo King", desc: "Reach a x3 hop combo multiplier." },
+  { id: "spring_jumper", icon: "🚀", title: "Spring Booster", desc: "Land on a spring platform." },
+  { id: "high_scorer", icon: "👑", title: "Retro Master", desc: "Score 200+ points in a single run." }
+];
+
+const DEFAULT_LEADERBOARD = [
+  { name: "HOP", score: 500, gems: 15, date: "2026-07-25" },
+  { name: "CUB", score: 350, gems: 10, date: "2026-07-25" },
+  { name: "ACE", score: 220, gems: 6, date: "2026-07-25" },
+  { name: "NEO", score: 140, gems: 4, date: "2026-07-25" },
+  { name: "RET", score: 80, gems: 2, date: "2026-07-25" }
+];
+
+const fmtScore = (num) => String(Math.max(0, num || 0)).padStart(5, '0');
 
 class SoundFx {
   constructor() {
@@ -35,10 +54,11 @@ class SoundFx {
     gain.connect(this.ctx.destination);
 
     const presets = {
-      hop: { type: "sine", start: 220, end: 440, dur: 0.1, vol: 0.2 },
-      gem: { type: "triangle", start: 587.33, end: 880, dur: 0.15, vol: 0.25 },
-      spring: { type: "sine", start: 300, end: 900, dur: 0.25, vol: 0.3 },
-      crash: { type: "sawtooth", start: 150, end: 40, dur: 0.3, vol: 0.4 }
+      hop: { type: "square", start: 160, end: 320, dur: 0.08, vol: 0.15 },
+      gem: { type: "triangle", start: 587, end: 1174, dur: 0.14, vol: 0.2 },
+      spring: { type: "sine", start: 250, end: 850, dur: 0.22, vol: 0.25 },
+      crash: { type: "sawtooth", start: 220, end: 40, dur: 0.35, vol: 0.35 },
+      badge: { type: "triangle", start: 523, end: 1046, dur: 0.25, vol: 0.3 }
     };
 
     const p = presets[type];
@@ -63,6 +83,7 @@ class CubeGame {
     this.platforms = [];
     this.gems = [];
     this.particles = [];
+    this.floatingTexts = [];
 
     this.score = 0;
     this.highScore = 0;
@@ -71,8 +92,16 @@ class CubeGame {
     this.totalHops = 0;
     this.totalGames = 0;
 
+    this.combo = 1;
+    this.maxCombo = 1;
+    this.lastHopTime = 0;
+
     this.activeSkin = "cyan";
     this.theme = "dark";
+    this.crtEnabled = true;
+
+    this.leaderboard = [...DEFAULT_LEADERBOARD];
+    this.unlockedBadges = [];
 
     this.isPlaying = false;
     this.isPaused = false;
@@ -86,27 +115,54 @@ class CubeGame {
       isHopping: false, hopProgress: 0
     };
 
-    this.dom = {
-      score: document.getElementById("scoreVal"),
-      best: document.getElementById("bestVal"),
-      gems: document.getElementById("gemsVal"),
-      combo: document.getElementById("comboVal"),
-      sr: document.getElementById("srAnnounce"),
-      startOverlay: document.getElementById("startOverlay"),
-      gameOverOverlay: document.getElementById("gameOverOverlay"),
-      pauseOverlay: document.getElementById("pauseOverlay"),
-      themeBtn: document.getElementById("themeToggle"),
-      audioBtn: document.getElementById("audioToggle"),
-      skinGrid: document.getElementById("skinGrid")
-    };
-
+    this.bindDom();
     this.loadData();
     this.setupListeners();
     this.setTheme(this.theme);
+    this.setCRT(this.crtEnabled);
     this.refreshHUD();
 
     this.loop = this.loop.bind(this);
     requestAnimationFrame(this.loop);
+  }
+
+  bindDom() {
+    const $ = (id) => document.getElementById(id);
+    this.dom = {
+      score: $("scoreVal"),
+      best: $("bestVal"),
+      gems: $("gemsVal"),
+      combo: $("comboVal"),
+      sr: $("srAnnounce"),
+      startOverlay: $("startOverlay"),
+      gameOverOverlay: $("gameOverOverlay"),
+      pauseOverlay: $("pauseOverlay"),
+      overReason: $("overReason"),
+      finalScore: $("finalScore"),
+      finalBest: $("finalBest"),
+      finalGems: $("finalGems"),
+      finalCombo: $("finalCombo"),
+      themeBtn: $("themeToggle"),
+      audioBtn: $("audioToggle"),
+      menuBtn: $("menuBtn"),
+      arcadeModal: $("arcadeModal"),
+      closeArcadeModal: $("closeArcadeModal"),
+      skinGrid: $("skinGrid"),
+      leaderboardRows: $("leaderboardRows"),
+      achievementsGrid: $("achievementsGrid"),
+      crtToggle: $("crtToggle"),
+      settingAudioToggle: $("settingAudioToggle"),
+      resetDataBtn: $("resetDataBtn"),
+      initialsContainer: $("initialsContainer"),
+      playerInitials: $("playerInitials"),
+      saveScoreBtn: $("saveScoreBtn"),
+      statGames: $("statGames"),
+      statBest: $("statBest"),
+      statGems: $("statGems"),
+      statHops: $("statHops"),
+      statMaxCombo: $("statMaxCombo"),
+      statAvgScore: $("statAvgScore")
+    };
   }
 
   loadData() {
@@ -116,11 +172,16 @@ class CubeGame {
       this.totalGems = data.totalGems || 0;
       this.totalHops = data.totalHops || 0;
       this.totalGames = data.totalGames || 0;
+      this.maxCombo = data.maxCombo || 1;
       this.activeSkin = data.activeSkin || "cyan";
       this.theme = data.theme || "dark";
+      this.crtEnabled = data.crtEnabled !== undefined ? data.crtEnabled : true;
       this.sound.enabled = data.sound !== undefined ? data.sound : true;
+      this.leaderboard = data.leaderboard?.length ? data.leaderboard : [...DEFAULT_LEADERBOARD];
+      this.unlockedBadges = data.unlockedBadges || [];
     } catch {
-      // defaults on storage read fail
+      this.leaderboard = [...DEFAULT_LEADERBOARD];
+      this.unlockedBadges = [];
     }
   }
 
@@ -131,12 +192,16 @@ class CubeGame {
         totalGems: this.totalGems,
         totalHops: this.totalHops,
         totalGames: this.totalGames,
+        maxCombo: this.maxCombo,
         activeSkin: this.activeSkin,
         theme: this.theme,
-        sound: this.sound.enabled
+        crtEnabled: this.crtEnabled,
+        sound: this.sound.enabled,
+        leaderboard: this.leaderboard,
+        unlockedBadges: this.unlockedBadges
       }));
     } catch {
-      // ignore storage write errors
+      // Storage unavailable
     }
   }
 
@@ -154,17 +219,48 @@ class CubeGame {
     this.dom.audioBtn.addEventListener("click", () => {
       this.sound.enabled = !this.sound.enabled;
       this.updateAudioIcon();
+      if (this.dom.settingAudioToggle) this.dom.settingAudioToggle.checked = this.sound.enabled;
       this.saveData();
     });
 
-    document.getElementById("skinsBtn").addEventListener("click", () => this.showModal("skinModal"));
-    document.getElementById("statsBtn").addEventListener("click", () => {
-      this.renderStats();
-      this.showModal("statsModal");
+    this.dom.menuBtn?.addEventListener("click", () => this.openArcadeHub("leaderboard"));
+    this.dom.closeArcadeModal?.addEventListener("click", () => this.hideModal("arcadeModal"));
+
+    document.querySelectorAll(".tab-btn").forEach(tab => {
+      tab.addEventListener("click", (e) => this.switchTab(e.currentTarget.dataset.tab));
     });
 
-    document.getElementById("closeSkinModal").addEventListener("click", () => this.hideModal("skinModal"));
-    document.getElementById("closeStatsModal").addEventListener("click", () => this.hideModal("statsModal"));
+    this.dom.crtToggle?.addEventListener("change", (e) => {
+      this.crtEnabled = e.target.checked;
+      this.setCRT(this.crtEnabled);
+      this.saveData();
+    });
+
+    this.dom.settingAudioToggle?.addEventListener("change", (e) => {
+      this.sound.enabled = e.target.checked;
+      this.updateAudioIcon();
+      this.saveData();
+    });
+
+    this.dom.resetDataBtn?.addEventListener("click", () => {
+      if (confirm("Reset all arcade high scores, statistics and unlocked badges?")) {
+        localStorage.removeItem(SAVE_KEY);
+        this.highScore = 0;
+        this.totalGems = 0;
+        this.totalHops = 0;
+        this.totalGames = 0;
+        this.maxCombo = 1;
+        this.leaderboard = [...DEFAULT_LEADERBOARD];
+        this.unlockedBadges = [];
+        this.saveData();
+        this.refreshHUD();
+        this.renderLeaderboard();
+        this.renderStats();
+        this.renderAchievements();
+      }
+    });
+
+    this.dom.saveScoreBtn?.addEventListener("click", () => this.savePlayerInitials());
 
     window.addEventListener("keydown", (e) => this.onKeyPress(e));
 
@@ -174,7 +270,7 @@ class CubeGame {
 
     this.dom.skinGrid.addEventListener("click", (e) => {
       const card = e.target.closest(".skin-card");
-      if (card && card.dataset.skin) {
+      if (card?.dataset.skin) {
         this.activeSkin = card.dataset.skin;
         this.saveData();
         this.renderSkins();
@@ -187,17 +283,48 @@ class CubeGame {
     this.dom.themeBtn.innerHTML = theme === "dark" ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
   }
 
+  setCRT(enabled) {
+    document.querySelector(".app-wrap")?.classList.toggle("crt-off", !enabled);
+  }
+
   updateAudioIcon() {
     this.dom.audioBtn.innerHTML = this.sound.enabled ? '<i class="fa-solid fa-volume-high"></i>' : '<i class="fa-solid fa-volume-xmark"></i>';
   }
 
+  openArcadeHub(defaultTab = "leaderboard") {
+    this.switchTab(defaultTab);
+    this.showModal("arcadeModal");
+  }
+
+  switchTab(tabName) {
+    this.sound.play("hop");
+    document.querySelectorAll(".tab-btn").forEach(t => t.classList.toggle("active", t.dataset.tab === tabName));
+    document.querySelectorAll(".tab-panel").forEach(p => p.classList.toggle("active", p.id === `tab-${tabName}`));
+
+    if (tabName === "leaderboard") this.renderLeaderboard();
+    if (tabName === "stats") this.renderStats();
+    if (tabName === "skins") this.renderSkins();
+    if (tabName === "achievements") this.renderAchievements();
+  }
+
   showModal(id) {
-    if (id === "skinModal") this.renderSkins();
-    document.getElementById(id).classList.remove("hidden");
+    document.getElementById(id)?.classList.remove("hidden");
   }
 
   hideModal(id) {
-    document.getElementById(id).classList.add("hidden");
+    document.getElementById(id)?.classList.add("hidden");
+  }
+
+  renderLeaderboard() {
+    if (!this.dom.leaderboardRows) return;
+    this.dom.leaderboardRows.innerHTML = this.leaderboard.slice(0, 5).map((entry, idx) => `
+      <tr class="rank-${idx + 1}">
+        <td>#${idx + 1}</td>
+        <td><strong>${entry.name}</strong></td>
+        <td class="highlight-cyan">${fmtScore(entry.score)}</td>
+        <td class="highlight-pink">💎 ${entry.gems}</td>
+      </tr>
+    `).join("");
   }
 
   renderSkins() {
@@ -210,16 +337,56 @@ class CubeGame {
   }
 
   renderStats() {
-    document.getElementById("statGames").innerText = this.totalGames;
-    document.getElementById("statBest").innerText = this.highScore;
-    document.getElementById("statGems").innerText = this.totalGems;
-    document.getElementById("statHops").innerText = this.totalHops;
+    this.dom.statGames.innerText = this.totalGames;
+    this.dom.statBest.innerText = fmtScore(this.highScore);
+    this.dom.statGems.innerText = this.totalGems;
+    this.dom.statHops.innerText = this.totalHops;
+    this.dom.statMaxCombo.innerText = `x${this.maxCombo}`;
+    this.dom.statAvgScore.innerText = this.totalGames > 0 ? Math.round(this.totalHops * 10 / this.totalGames) : 0;
+  }
+
+  renderAchievements() {
+    if (!this.dom.achievementsGrid) return;
+    this.dom.achievementsGrid.innerHTML = ACHIEVEMENTS.map(ach => {
+      const unlocked = this.unlockedBadges.includes(ach.id);
+      return `
+        <div class="badge-card ${unlocked ? 'unlocked' : ''}">
+          <div class="badge-icon">${ach.icon}</div>
+          <div class="badge-info">
+            <span class="badge-title">${ach.title}</span>
+            <span class="badge-desc">${ach.desc}</span>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  unlockAchievement(id) {
+    if (!this.unlockedBadges.includes(id)) {
+      this.unlockedBadges.push(id);
+      const ach = ACHIEVEMENTS.find(a => a.id === id);
+      if (ach) {
+        this.sound.play("badge");
+        this.addFloatingText(`BADGE: ${ach.title.toUpperCase()}!`, this.player.gridX, this.player.gridY, "#ffcc00");
+      }
+      this.saveData();
+    }
+  }
+
+  checkAchievements() {
+    if (this.totalHops >= 1) this.unlockAchievement("first_hop");
+    if (this.totalGems >= 10) this.unlockAchievement("gem_collector");
+    if (this.totalHops >= 100) this.unlockAchievement("hop_century");
+    if (this.combo >= 3) this.unlockAchievement("combo_master");
+    if (this.score >= 200) this.unlockAchievement("high_scorer");
   }
 
   start() {
     this.sound.init();
     this.score = 0;
     this.gemsCount = 0;
+    this.combo = 1;
+    this.lastHopTime = Date.now();
     this.isPlaying = true;
     this.isPaused = false;
     this.isGameOver = false;
@@ -239,11 +406,14 @@ class CubeGame {
     this.dom.startOverlay.classList.add("hidden");
     this.dom.gameOverOverlay.classList.add("hidden");
     this.dom.pauseOverlay.classList.add("hidden");
+    this.dom.initialsContainer.classList.add("hidden");
   }
 
   buildMap() {
     this.platforms = [];
     this.gems = [];
+    this.particles = [];
+    this.floatingTexts = [];
 
     for (let y = -2; y <= 3; y++) {
       for (let x = -1; x <= 1; x++) {
@@ -306,6 +476,11 @@ class CubeGame {
   jump(dx, dy) {
     if (!this.isPlaying || this.isPaused || this.player.isHopping) return;
 
+    const now = Date.now();
+    this.combo = (now - this.lastHopTime < 1400) ? Math.min(this.combo + 1, 4) : 1;
+    this.lastHopTime = now;
+    if (this.combo > this.maxCombo) this.maxCombo = this.combo;
+
     this.player.isHopping = true;
     this.player.hopProgress = 0;
     this.player.startGridX = this.player.gridX;
@@ -315,6 +490,7 @@ class CubeGame {
 
     this.sound.play("hop");
     this.totalHops++;
+    this.checkAchievements();
     this.addDust(this.player.gridX, this.player.gridY, "#ffffff", 4);
   }
 
@@ -369,6 +545,12 @@ class CubeGame {
       p.life -= 0.04;
     });
     this.particles = this.particles.filter(p => p.life > 0);
+
+    this.floatingTexts.forEach(ft => {
+      ft.z += 0.03;
+      ft.life -= 0.025;
+    });
+    this.floatingTexts = this.floatingTexts.filter(ft => ft.life > 0);
   }
 
   onLand() {
@@ -378,7 +560,7 @@ class CubeGame {
     );
 
     if (!current || current.z < -2) {
-      this.fail("You fell into the void!");
+      this.fail("YOU FELL INTO THE VOID!");
       return;
     }
 
@@ -386,6 +568,8 @@ class CubeGame {
       current.crumbling = true;
     } else if (current.type === PLATFORMS.SPRING) {
       this.sound.play("spring");
+      this.unlockAchievement("spring_jumper");
+      this.addFloatingText("SPRING BOOST!", this.player.gridX, this.player.gridY, "#00ff66");
       this.jump(0, 2);
     }
 
@@ -394,13 +578,18 @@ class CubeGame {
         g.collected = true;
         this.gemsCount++;
         this.totalGems++;
-        this.score += 25;
+        const points = 25 * this.combo;
+        this.score += points;
         this.sound.play("gem");
         this.addDust(this.player.gridX, this.player.gridY, "#ffd700", 8);
+        this.addFloatingText(`+${points} GEM!`, this.player.gridX, this.player.gridY, "#ff007f");
       }
     });
 
-    this.score += 10;
+    const hopPts = 10 * this.combo;
+    this.score += hopPts;
+    this.addFloatingText(`+${hopPts}`, this.player.gridX, this.player.gridY, "#00f0ff");
+
     if (this.score > this.highScore) {
       this.highScore = this.score;
     }
@@ -409,24 +598,51 @@ class CubeGame {
     this.saveData();
   }
 
+  addFloatingText(text, gridX, gridY, color = "#00f0ff") {
+    this.floatingTexts.push({ text, x: gridX, y: gridY, z: 1.2, color, life: 1.0 });
+  }
+
   fail(reason) {
     this.isPlaying = false;
     this.isGameOver = true;
     this.sound.play("crash");
 
-    document.getElementById("overReason").innerText = reason;
-    document.getElementById("finalScore").innerText = this.score;
-    document.getElementById("finalBest").innerText = this.highScore;
-    document.getElementById("finalGems").innerText = this.gemsCount;
+    this.dom.overReason.innerText = reason;
+    this.dom.finalScore.innerText = fmtScore(this.score);
+    this.dom.finalBest.innerText = fmtScore(this.highScore);
+    this.dom.finalGems.innerText = this.gemsCount;
+    this.dom.finalCombo.innerText = `x${this.combo}`;
 
+    const isTopScore = this.score > 0 && (this.leaderboard.length < 5 || this.score > this.leaderboard[this.leaderboard.length - 1].score);
+    this.dom.initialsContainer.classList.toggle("hidden", !isTopScore);
     this.dom.gameOverOverlay.classList.remove("hidden");
   }
 
+  savePlayerInitials() {
+    let name = (this.dom.playerInitials.value || "AAA").toUpperCase().trim();
+    if (!name) name = "AAA";
+
+    this.leaderboard.push({
+      name,
+      score: this.score,
+      gems: this.gemsCount,
+      date: new Date().toISOString().split("T")[0]
+    });
+
+    this.leaderboard.sort((a, b) => b.score - a.score);
+    this.leaderboard = this.leaderboard.slice(0, 5);
+    this.saveData();
+
+    this.dom.initialsContainer.classList.add("hidden");
+    this.renderLeaderboard();
+    this.openArcadeHub("leaderboard");
+  }
+
   refreshHUD() {
-    this.dom.score.innerText = this.score;
-    this.dom.best.innerText = this.highScore;
-    this.dom.gems.innerText = `💎 ${this.gemsCount}`;
-    this.dom.combo.innerText = `x1`;
+    this.dom.score.innerText = fmtScore(this.score);
+    this.dom.best.innerText = fmtScore(this.highScore);
+    this.dom.gems.innerText = `💎 ${String(this.gemsCount).padStart(2, '0')}`;
+    this.dom.combo.innerText = `x${this.combo}`;
     this.dom.sr.innerText = `Score: ${this.score}, High Score: ${this.highScore}`;
   }
 
@@ -469,6 +685,19 @@ class CubeGame {
       this.ctx.beginPath();
       this.ctx.arc(pos.x, pos.y, 3 * p.life, 0, Math.PI * 2);
       this.ctx.fill();
+    });
+
+    this.floatingTexts.forEach(ft => {
+      const pos = this.toIso(ft.x, ft.y, ft.z);
+      this.ctx.save();
+      this.ctx.globalAlpha = Math.max(0, ft.life);
+      this.ctx.fillStyle = ft.color;
+      this.ctx.font = '12px "Press Start 2P", monospace';
+      this.ctx.textAlign = 'center';
+      this.ctx.shadowColor = '#000';
+      this.ctx.shadowBlur = 4;
+      this.ctx.fillText(ft.text, pos.x, pos.y);
+      this.ctx.restore();
     });
   }
 
