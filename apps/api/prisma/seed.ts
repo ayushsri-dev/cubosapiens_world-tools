@@ -355,11 +355,22 @@ async function main()
             isLive: false,
             isFeatured: false,
             order: 6
+      },
+      {
+            name: "Coin Collector",
+            slug: "coin-collector",
+            description: "Fast-paced arcade coin rush — collect gold, chain combos, unleash magnets, and beat the clock!",
+            genre: "arcade",
+            icon: "🪙",
+            url: "https://coin-collector.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 7
       }
 ]
   })
 
-  console.log("✅ 12 games seeded")
+  console.log("✅ 13 games seeded")
 }
 
 main()
