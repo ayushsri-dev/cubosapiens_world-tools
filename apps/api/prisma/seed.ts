@@ -463,6 +463,17 @@ async function main()
             isLive: true,
             isFeatured: true,
             order: 9
+      }, 
+      {
+            name: "Coin Collector",
+            slug: "coin-collector",
+            description: "Fast-paced arcade coin rush — collect gold, chain combos, unleash magnets, and beat the clock!",
+            genre: "arcade",
+            icon: "🪙",
+            url: "https://coin-collector.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 10
       }
 ]
   })
