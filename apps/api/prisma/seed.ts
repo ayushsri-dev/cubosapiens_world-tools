@@ -495,7 +495,7 @@ async function main()
             url: "https://number-match.cubosapiens.world",
             isLive: true,
             isFeatured: true,
-            order: 7
+            order: 12
        }
 ]
   })
