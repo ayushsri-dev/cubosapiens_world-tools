@@ -474,6 +474,17 @@ async function main()
             isLive: true,
             isFeatured: true,
             order: 10
+      },
+      {
+            name: "Word Search",
+            slug: "word-search",
+            description: "Find hidden words in dynamic letter grids with multiple topics and custom word lists",
+            genre: "puzzle",
+            icon: "🔤",
+            url: "https://word-search.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 11
       }
 ]
   })
