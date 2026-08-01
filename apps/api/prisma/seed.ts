@@ -355,11 +355,22 @@ async function main()
             isLive: false,
             isFeatured: false,
             order: 6
+      },
+      {
+            name: "Word Search",
+            slug: "word-search",
+            description: "Find hidden words in dynamic letter grids with multiple topics and custom word lists",
+            genre: "puzzle",
+            icon: "🔤",
+            url: "https://word-search.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 7
       }
 ]
   })
 
-  console.log("✅ 12 games seeded")
+  console.log("✅ 13 games seeded")
 }
 
 main()
