@@ -355,11 +355,22 @@ async function main()
             isLive: false,
             isFeatured: false,
             order: 6
+      },
+      {
+            name: "Number Match",
+            slug: "number-match",
+            description: "Classic logic number pairing puzzle — match pairs of equal numbers or numbers that add up to 10.",
+            genre: "puzzle",
+            icon: "🔢",
+            url: "https://number-match.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 7
       }
 ]
   })
 
-  console.log("✅ 12 games seeded")
+  console.log("✅ 13 games seeded")
 }
 
 main()
