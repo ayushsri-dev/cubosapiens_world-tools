@@ -74,12 +74,15 @@ export const metadata: Metadata = {
 export const viewport = {
   themeColor: "#000000",
 }
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 })
 {
+  const aiTools = await fetchTools({ category: "ai" })
+  const hasLiveAi = aiTools.length > 0
+
   return (
     <html lang="en" suppressHydrationWarning className={cn("font-sans", geist.variable)}>
      <head>
@@ -89,7 +92,7 @@ export default function RootLayout({
 </head>
       <body className={`${alfaSlabOne.variable} ${syne.variable} ${dmSans.variable}`}>
         <TrackVisit />
-        <Header hasLiveAi={false} />
+        <Header hasLiveAi={hasLiveAi} />
         <main>{children}</main>
         <Footer />
         <PWAInstallPrompt />
