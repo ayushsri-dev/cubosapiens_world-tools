@@ -144,8 +144,9 @@ body {
     color: var(--text-main);
 }
 
+.breadcrumb span,
 .active-crumb {
-    color: var(--accent-amber) !important;
+    color: var(--accent-amber);
 }
 
 .icon-btn {
@@ -435,21 +436,25 @@ body {
     align-items: center;
 }
 
-.lives-hearts {
+.lives-hearts,
+#livesContainer {
     display: flex;
     gap: 0.3rem;
     margin-top: 4px;
 }
 
-.lives-hearts .fa-heart {
+.lives-hearts .fa-heart,
+#livesContainer .fa-heart {
     font-size: 0.95rem;
     color: var(--text-muted);
     opacity: 0.3;
+    transition: color 0.15s ease, opacity 0.15s ease;
 }
 
-.lives-hearts .fa-heart.active {
-    color: var(--cell-error);
-    opacity: 1;
+.lives-hearts .fa-heart.active,
+#livesContainer .fa-heart.active {
+    color: var(--cell-error) !important;
+    opacity: 1 !important;
 }
 
 /* Status Banner */
