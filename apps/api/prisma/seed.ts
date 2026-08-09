@@ -496,11 +496,23 @@ async function main()
             isLive: true,
             isFeatured: true,
             order: 12
+       },
+       {
+            name: "Pattern Match",
+            slug: "pattern-match",
+            description: "Observe the pattern and reproduce it",
+            genre: "puzzle",
+            icon: "🎰",
+            url: "https://pattern-match.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 13
        }
+        
 ]
   })
 
-  console.log("✅ 17 games seeded")
+  console.log("✅ 18 games seeded")
 }
 
 main()
