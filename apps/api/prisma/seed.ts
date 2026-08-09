@@ -508,6 +508,16 @@ async function main()
             isFeatured: true,
             order: 13
          }
+            name: "Pattern Match",
+            slug: "pattern-match",
+            description: "Observe the pattern and reproduce it",
+            genre: "puzzle",
+            icon: "🎰",
+            url: "https://pattern-match.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 13
+       }
         
 ]
   })
