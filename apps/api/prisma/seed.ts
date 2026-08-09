@@ -498,6 +498,16 @@ async function main()
             order: 12
        },
        {
+            name: "Tunnel Escape",
+            slug: "tunnel-escape",
+            description: "Navigate a collapsing tunnel while dodging falling debris and closing hazards.",
+            genre: "arcade",
+            icon: "🚀",
+            url: "https://tunnel-escape.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 13
+         }
             name: "Pattern Match",
             slug: "pattern-match",
             description: "Observe the pattern and reproduce it",
