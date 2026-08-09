@@ -496,11 +496,23 @@ async function main()
             isLive: true,
             isFeatured: true,
             order: 12
-       }
+       },
+       {
+            name: "Tunnel Escape",
+            slug: "tunnel-escape",
+            description: "Navigate a collapsing tunnel while dodging falling debris and closing hazards.",
+            genre: "arcade",
+            icon: "🚀",
+            url: "https://tunnel-escape.cubosapiens.world",
+            isLive: true,
+            isFeatured: true,
+            order: 13
+         }
+        
 ]
   })
 
-  console.log("✅ 17 games seeded")
+  console.log("✅ 18 games seeded")
 }
 
 main()
